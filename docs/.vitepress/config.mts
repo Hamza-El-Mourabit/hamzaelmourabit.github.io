@@ -5,7 +5,6 @@ export default defineConfig({
     title: "LWa7ch's Blogs",
     description: "Cybersecurity & CTF Exploitation - Master Write-ups",
     cleanUrls: true,
-    srcDir: 'docs',
     themeConfig: {
         logo: '/logo.png',
         nav: [
