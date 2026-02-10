@@ -2,9 +2,9 @@
 layout: home
 
 hero:
-  name: "Laundry Write-up"
-  text: "Level 67 Cyber-Expertise"
-  tagline: "Unveiling the machine's deepest secrets through binary exploitation."
+  name: "LWa7ch's Blogs"
+  text: "Master-Level Exploitation"
+  tagline: "Dissecting the binary abyss. Where logic meets the edge of the machine."
   actions:
     - theme: brand
       text: "ACCESS WRITE-UPS"
@@ -14,18 +14,18 @@ hero:
       link: https://github.com/Hamza-El-Mourabit
   image:
     src: https://images.unsplash.com/photo-1550751827-4bd374c3f58b?q=80&w=1000&auto=format&fit=crop # Cyberpunk image
-    alt: Hamza Pwn Lab
+    alt: LWa7ch Pwn Lab
 
 features:
   - icon: ☢️
-    title: "Nuclear Payload Dev"
-    details: "Mastering the art of ROP, Heap corruption, and Kernel exploitation."
+    title: "Kernel Devourer"
+    details: "Deep dives into V8 exploits, Kernel ROP, and advanced Heap grooming techniques."
   - icon: 🧊
-    title: "Zero-Day Research"
-    details: "Methodical auditing of binaries to uncover hidden vulnerabilities."
+    title: "O-Day Architect"
+    details: "Systematic vulnerability research targeting modern platform mitigations."
   - icon: ⚡
-    title: "Instant Infiltration"
-    details: "Transforming theoretical research into reliable weaponized exploits."
+    title: "Weaponized Payloads"
+    details: "Crafting reliable, bypass-focused exploit chains for real-world scenarios."
 ---
 
 # Latest Posts

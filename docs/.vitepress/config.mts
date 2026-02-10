@@ -2,8 +2,9 @@ import { defineConfig } from 'vitepress'
 
 export default defineConfig({
     base: '/hamzaelmourabit.github.io/',
-    title: "Hamza's Pwn Lab",
-    description: "Cybersecurity & CTF Exploitation - Expert Write-ups",
+    title: "LWa7ch's Blogs",
+    description: "Cybersecurity & CTF Exploitation - Master Write-ups",
+    cleanUrls: true,
     srcDir: 'docs',
     themeConfig: {
         logo: '/logo.png',
@@ -25,7 +26,7 @@ export default defineConfig({
         ],
         footer: {
             message: 'Released under the MIT License.',
-            copyright: 'Copyright © 2026-present Hamza'
+            copyright: 'Copyright © 2026-present LWa7ch'
         },
         search: {
             provider: 'local'

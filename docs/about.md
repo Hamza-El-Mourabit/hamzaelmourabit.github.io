@@ -1,6 +1,6 @@
-# About Hamza's Pwn Lab
+# About LWa7ch's Blogs
 
-Welcome to the digital sanctuary of **Hamza**. 
+Welcome to the digital sanctuary of **LWa7ch**. 
 
 This blog is dedicated to the pursuit of absolute technical mastery in the field of cybersecurity. Here, we don't just solve challenges; we dissect the very fabric of binary logic, exploring the vulnerabilities that lie beneath the surface of modern software.
 

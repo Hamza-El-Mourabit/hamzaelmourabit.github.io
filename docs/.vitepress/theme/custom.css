@@ -1,52 +1,119 @@
 :root {
-  --vp-c-brand-1: #00ff41; /* Hacker Green */
-  --vp-c-brand-2: #00d436;
-  --vp-c-brand-3: #008f25;
+  --vp-c-brand-1: #00ff41;
+  /* Primary Hacker Green */
+  --vp-c-brand-2: #0dcf36;
+  --vp-c-brand-3: #008f11;
   --vp-c-brand-soft: rgba(0, 255, 65, 0.1);
+  --vp-c-bg: #030303;
+  --vp-c-bg-soft: #080808;
+  --vp-c-bg-alt: #0a0a0a;
   --vp-home-hero-name-color: transparent;
   --vp-home-hero-name-background: linear-gradient(135deg, #00ff41 0%, #008f25 100%);
-  --vp-c-bg-alt: #0b0b0b;
-  --vp-c-bg: #050505;
 }
 
 .dark {
-  --vp-c-bg: #050505;
-  --vp-c-bg-soft: #0a0a0a;
-  --vp-c-bg-mute: #111;
+  --vp-c-bg: #030303;
 }
 
-/* Custom hacker animations */
-@keyframes matrix {
-  0% { text-shadow: 0 0 2px #00ff41; }
-  50% { text-shadow: 0 0 10px #00ff41, 0 0 20px #00ff41; }
-  100% { text-shadow: 0 0 2px #00ff41; }
+/* CRT Scanline Effect */
+body::before {
+  content: " ";
+  display: block;
+  position: fixed;
+  top: 0;
+  left: 0;
+  bottom: 0;
+  right: 0;
+  background: linear-gradient(rgba(18, 16, 16, 0) 50%, rgba(0, 0, 0, 0.25) 50%), linear-gradient(90deg, rgba(255, 0, 0, 0.06), rgba(0, 255, 0, 0.02), rgba(0, 0, 255, 0.06));
+  z-index: 1000;
+  background-size: 100% 2px, 3px 100%;
+  pointer-events: none;
+  opacity: 0.15;
+}
+
+/* Glitch Animation */
+@keyframes glitch {
+  0% {
+    transform: translate(0);
+    clip-path: inset(0 0 0 0);
+  }
+
+  2% {
+    transform: translate(-2px, 2px);
+    clip-path: inset(10% 0 80% 0);
+  }
+
+  4% {
+    transform: translate(2px, -2px);
+    clip-path: inset(40% 0 40% 0);
+  }
+
+  /* ... simplified for performance ... */
+  10% {
+    transform: translate(0);
+  }
 }
 
 .VPHero .name {
-  animation: matrix 3s infinite ease-in-out;
-  letter-spacing: -1px;
+  position: relative;
+  text-transform: uppercase;
+  letter-spacing: 0.1em;
+  font-family: 'JetBrains Mono', monospace;
 }
 
-.VPHero .image {
-  filter: drop-shadow(0 0 30px rgba(0, 255, 65, 0.3));
+.VPHero .name:hover {
+  animation: glitch 0.5s infinite;
 }
 
 .VPFeature {
-  border: 1px solid rgba(0, 255, 65, 0.1) !important;
-  background: rgba(10, 10, 10, 0.8) !important;
-  backdrop-filter: blur(10px);
+  position: relative;
+  overflow: hidden;
+  border: 1px solid rgba(0, 255, 65, 0.05) !important;
+  background: rgba(5, 5, 5, 0.9) !important;
+  transition: all 0.3s cubic-bezier(0.175, 0.885, 0.32, 1.275);
 }
 
 .VPFeature:hover {
   border-color: var(--vp-c-brand-1) !important;
-  box-shadow: 0 0 20px rgba(0, 255, 65, 0.1);
+  transform: translateY(-5px) scale(1.02);
+  box-shadow: 0 0 40px rgba(0, 255, 65, 0.1);
 }
 
-code {
+.VPFeature::after {
+  content: "";
+  position: absolute;
+  top: -50%;
+  left: -50%;
+  width: 200%;
+  height: 200%;
+  background: radial-gradient(circle, rgba(0, 255, 65, 0.1) 0%, transparent 70%);
+  opacity: 0;
+  transition: opacity 0.3s;
+  pointer-events: none;
+}
+
+.VPFeature:hover::after {
+  opacity: 1;
+}
+
+/* Expert Content Typography */
+.vp-doc h1,
+.vp-doc h2,
+.vp-doc h3 {
+  border-bottom: 1px solid rgba(0, 255, 65, 0.1) !important;
   color: #00ff41 !important;
 }
 
-.custom-block.details {
-  background-color: #0a0a0a !important;
-  border-left: 4px solid #00ff41 !important;
+code {
+  background-color: #0d0d0d !important;
+  border: 1px solid #1a1a1a;
+  border-radius: 4px;
+  padding: 0.2em 0.4em;
+}
+
+/* Dynamic Navbar */
+.VPNavBar {
+  background-color: rgba(3, 3, 3, 0.7) !important;
+  backdrop-filter: blur(20px);
+  border-bottom: 1px solid rgba(0, 255, 65, 0.05) !important;
 }
