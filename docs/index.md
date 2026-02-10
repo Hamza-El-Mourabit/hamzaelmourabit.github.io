@@ -3,29 +3,29 @@ layout: home
 
 hero:
   name: "Antigravity Mastery"
-  text: "The Art of Binary Exploitation"
-  tagline: "Deep dives into CTFs, Pwn, and modern security research."
+  text: "Level 67 Cyber-Expertise"
+  tagline: "Unveiling the machine's deepest secrets through binary exploitation."
   actions:
     - theme: brand
-      text: Read Latest Write-up
+      text: "ACCESS WRITE-UPS"
       link: /posts/dirty-laundry
     - theme: alt
-      text: View on GitHub
-      link: https://github.com
+      text: "DRACONIC RECON"
+      link: https://github.com/Hamza-El-Mourabit
   image:
-    src: /hero.png
+    src: https://images.unsplash.com/photo-1550751827-4bd374c3f58b?q=80&w=1000&auto=format&fit=crop # Cyberpunk image
     alt: Antigravity
 
 features:
-  - icon: 🛡️
-    title: "Expert Analysis"
-    details: "High-density technical breakdowns of complex vulnerabilities."
-  - icon: 💻
-    title: "Modern Exploit Dev"
-    details: "Deep dives into x64, Heap, and Sandbox escapes."
-  - icon: 🚀
-    title: "Community Driven"
-    details: "Sharing knowledge to build the next generation of security experts."
+  - icon: ☢️
+    title: "Nuclear Payload Dev"
+    details: "Mastering the art of ROP, Heap corruption, and Kernel exploitation."
+  - icon: 🧊
+    title: "Zero-Day Research"
+    details: "Methodical auditing of binaries to uncover hidden vulnerabilities."
+  - icon: ⚡
+    title: "Instant Infiltration"
+    details: "Transforming theoretical research into reliable weaponized exploits."
 ---
 
 # Latest Posts

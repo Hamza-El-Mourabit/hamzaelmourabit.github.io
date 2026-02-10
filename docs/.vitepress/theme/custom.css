@@ -1,0 +1,52 @@
+:root {
+  --vp-c-brand-1: #00ff41; /* Hacker Green */
+  --vp-c-brand-2: #00d436;
+  --vp-c-brand-3: #008f25;
+  --vp-c-brand-soft: rgba(0, 255, 65, 0.1);
+  --vp-home-hero-name-color: transparent;
+  --vp-home-hero-name-background: linear-gradient(135deg, #00ff41 0%, #008f25 100%);
+  --vp-c-bg-alt: #0b0b0b;
+  --vp-c-bg: #050505;
+}
+
+.dark {
+  --vp-c-bg: #050505;
+  --vp-c-bg-soft: #0a0a0a;
+  --vp-c-bg-mute: #111;
+}
+
+/* Custom hacker animations */
+@keyframes matrix {
+  0% { text-shadow: 0 0 2px #00ff41; }
+  50% { text-shadow: 0 0 10px #00ff41, 0 0 20px #00ff41; }
+  100% { text-shadow: 0 0 2px #00ff41; }
+}
+
+.VPHero .name {
+  animation: matrix 3s infinite ease-in-out;
+  letter-spacing: -1px;
+}
+
+.VPHero .image {
+  filter: drop-shadow(0 0 30px rgba(0, 255, 65, 0.3));
+}
+
+.VPFeature {
+  border: 1px solid rgba(0, 255, 65, 0.1) !important;
+  background: rgba(10, 10, 10, 0.8) !important;
+  backdrop-filter: blur(10px);
+}
+
+.VPFeature:hover {
+  border-color: var(--vp-c-brand-1) !important;
+  box-shadow: 0 0 20px rgba(0, 255, 65, 0.1);
+}
+
+code {
+  color: #00ff41 !important;
+}
+
+.custom-block.details {
+  background-color: #0a0a0a !important;
+  border-left: 4px solid #00ff41 !important;
+}
