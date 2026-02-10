@@ -6,26 +6,29 @@
   --vp-home-hero-name-background: linear-gradient(135deg, #00ff41 0%, #008f25 100%);
 }
 
-/* Base Theme Support */
+/* Half-Black Professional Aesthetic */
 :root:not(.dark) {
   --vp-c-bg: #ffffff;
-  --vp-c-bg-soft: #f6f6f7;
-  --vp-c-bg-alt: #f6f6f7;
-  --vp-c-text-1: #213547;
-  --vp-c-text-2: rgba(60, 60, 60, 0.7);
-  --vp-code-bg: #f1f1f1;
+  --vp-c-bg-soft: #f1f3f5;
+  --vp-c-bg-alt: #f1f3f5;
+  --vp-c-text-1: #1a1a1b;
+  --vp-c-text-2: #4a4a4a;
+  --vp-code-bg: #f8f9fa;
 }
 
 .dark {
-  --vp-c-bg: #010101;
-  --vp-c-bg-soft: #080808;
-  --vp-c-bg-alt: #0a0a0a;
-  --vp-c-text-1: #e0e0e0;
-  --vp-c-text-2: rgba(0, 255, 65, 0.7);
-  --vp-code-bg: #0d0d0d;
+  /* Half-Black: Charcoal to Deep Space Blue Gradient effect */
+  --vp-c-bg: #0a0b10;
+  --vp-c-bg-soft: #11141d;
+  --vp-c-bg-alt: #0d0f16;
+  --vp-c-text-1: #f0f0f0;
+  --vp-c-text-2: rgba(200, 200, 200, 0.7);
+  --vp-code-bg: #111b27;
+  /* Terminal Slate */
+  --vp-feature-bg: rgba(20, 25, 35, 0.8);
 }
 
-/* CRT Scanline Overlay */
+/* Subtle Scanner Effect */
 body::before {
   content: " ";
   display: block;
@@ -35,69 +38,81 @@ body::before {
   bottom: 0;
   right: 0;
   background:
-    linear-gradient(rgba(18, 16, 16, 0) 50%, rgba(0, 0, 0, 0.15) 50%),
-    linear-gradient(90deg, rgba(255, 0, 0, 0.03), rgba(0, 255, 0, 0.01), rgba(0, 0, 255, 0.03));
+    linear-gradient(rgba(10, 15, 20, 0) 50%, rgba(0, 0, 0, 0.1) 50%),
+    linear-gradient(90deg, rgba(0, 255, 65, 0.01), rgba(0, 0, 0, 0.05), rgba(0, 255, 65, 0.01));
   z-index: 9999;
-  background-size: 100% 4px, 3px 100%;
+  background-size: 100% 4px, 100% 100%;
   pointer-events: none;
-  opacity: 0.1;
+  opacity: 0.2;
 }
 
-/* Hero Section */
+/* Professional Hero Fix */
 .VPHero .name {
-  font-family: 'JetBrains Mono', monospace;
-  letter-spacing: 0.1em;
-  text-shadow: 0 0 10px rgba(0, 255, 65, 0.2);
+  font-family: 'Inter', -apple-system, sans-serif;
+  font-weight: 800 !important;
+  letter-spacing: -0.02em !important;
+  text-shadow: 0 0 15px rgba(0, 255, 65, 0.1);
 }
 
-/* Features */
+.VPHero .text {
+  color: var(--vp-c-brand-1) !important;
+  font-family: 'JetBrains Mono', monospace;
+  font-size: 1.2rem !important;
+  opacity: 0.9;
+}
+
+/* World-Class Feature Cards */
 .VPFeature {
-  border: 1px solid rgba(0, 255, 65, 0.1) !important;
-  background: var(--vp-c-bg-soft) !important;
-  transition: all 0.3s ease;
+  border: 1px solid rgba(0, 255, 65, 0.05) !important;
+  background: var(--vp-feature-bg) !important;
+  backdrop-filter: blur(10px);
+  border-radius: 12px !important;
+  box-shadow: 0 10px 30px rgba(0, 0, 0, 0.2);
 }
 
 .VPFeature:hover {
-  border-color: var(--vp-c-brand-1) !important;
-  transform: translateY(-5px);
-  box-shadow: 0 0 20px rgba(0, 255, 65, 0.1);
+  border-color: rgba(0, 255, 65, 0.4) !important;
+  transform: translateY(-4px);
+  box-shadow: 0 15px 40px rgba(0, 255, 65, 0.05);
 }
 
-/* Code Visibility Fix */
+/* Terminal-Slate Code Blocks */
 .vp-doc code {
-  font-family: 'Fira Code', 'JetBrains Mono', monospace;
-  padding: 0.2em 0.4em;
-  border-radius: 4px;
-}
-
-.dark .vp-doc code {
-  color: #00ff41 !important;
+  font-family: 'JetBrains Mono', monospace;
   background-color: var(--vp-code-bg) !important;
+  padding: 0.2em 0.5em;
+  border-radius: 6px;
+  font-size: 0.9em;
 }
 
-:root:not(.dark) .vp-doc code {
-  color: #008f11 !important;
-  background-color: var(--vp-code-bg) !important;
-}
-
-/* Code Blocks */
 .dark div[class*="language-"] {
-  background-color: #0d0d0d !important;
-  border: 1px solid rgba(0, 255, 65, 0.2) !important;
+  background-color: #0c121a !important;
+  border: 1px solid rgba(0, 255, 65, 0.1) !important;
+  box-shadow: 0 4px 20px rgba(0, 0, 0, 0.3);
 }
 
 .vp-doc h1,
 .vp-doc h2,
 .vp-doc h3 {
-  color: var(--vp-c-brand-1) !important;
+  font-weight: 700;
+  letter-spacing: -0.01em;
+  border-bottom: 1px solid rgba(0, 255, 65, 0.05) !important;
 }
 
-/* Scrollbar */
+/* Clean Professional Scrollbar */
 ::-webkit-scrollbar {
-  width: 6px;
+  width: 8px;
+}
+
+::-webkit-scrollbar-track {
+  background: var(--vp-c-bg);
 }
 
 ::-webkit-scrollbar-thumb {
+  background: #222;
+  border-radius: 4px;
+}
+
+::-webkit-scrollbar-thumb:hover {
   background: var(--vp-c-brand-1);
-  border-radius: 3px;
 }

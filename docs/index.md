@@ -3,8 +3,8 @@ layout: home
 
 hero:
   name: "LWa7ch's Blogs"
-  text: "Advanced Binary Exploitation"
-  tagline: "Dissecting the binary abyss. Where logic meets the edge of the machine."
+  text: "AI & Cybersecurity Engineering Student"
+  tagline: "Bridging the gap between intelligent systems and low-level exploitation."
   actions:
     - theme: brand
       text: "ACCESS ALL WRITE-UPS"
@@ -30,8 +30,14 @@ features:
 
 # Latest Posts
 
+- **[The Pokedex UAF Challenge - Heap Exploit](/posts/pokedex)**  
+  *Un début de cours sur l'exploitation du Heap Glibc via Use-After-Free.*
+
 - **[Talking Mirror - Format String Exploit](/posts/talking-mirror)**  
   *Leaking GOT and redirecting execution via printf.*
 
 - **[Dirty Laundry - Ret2Libc Deep Dive](/posts/dirty-laundry)**  
   *A technical breakdown of bypassing NX and ASLR via return-to-libc.*
+
+- **[UltraCTF Architecture - Autonomous Pwn](/posts/ultra-ctf)**  
+  *How AI is revolutionizing the future of CTF solving.*
