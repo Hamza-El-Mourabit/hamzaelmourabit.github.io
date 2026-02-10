@@ -1,7 +1,7 @@
 import { defineConfig } from 'vitepress'
 
 export default defineConfig({
-    base: '/hamzaelmourabit.github.io/',
+    base: '/',
     title: "LWa7ch's Blogs",
     description: "Cybersecurity & CTF Exploitation - Master Write-ups",
     cleanUrls: true,

@@ -7,10 +7,10 @@ hero:
   tagline: "Dissecting the binary abyss. Where logic meets the edge of the machine."
   actions:
     - theme: brand
-      text: "ACCESS WRITE-UPS"
+      text: "ACCESS MASTER WRITE-UPS"
       link: /posts/dirty-laundry
     - theme: alt
-      text: "DRACONIC RECON"
+      text: "VIEW RECON DEPOT"
       link: https://github.com/Hamza-El-Mourabit
   image:
     src: https://images.unsplash.com/photo-1550751827-4bd374c3f58b?q=80&w=1000&auto=format&fit=crop # Cyberpunk image
