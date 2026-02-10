@@ -3,11 +3,11 @@ layout: home
 
 hero:
   name: "LWa7ch's Blogs"
-  text: "Master-Level Exploitation"
+  text: "Advanced Binary Exploitation"
   tagline: "Dissecting the binary abyss. Where logic meets the edge of the machine."
   actions:
     - theme: brand
-      text: "ACCESS MASTER WRITE-UPS"
+      text: "ACCESS ALL WRITE-UPS"
       link: /posts/dirty-laundry
     - theme: alt
       text: "VIEW RECON DEPOT"
@@ -30,5 +30,8 @@ features:
 
 # Latest Posts
 
-- **[Dirty Laundry - Ret2Libc Masterclass](/posts/dirty-laundry)**  
-  *A deep dive into bypassing NX and ASLR via return-to-libc attack.*
+- **[Talking Mirror - Format String Exploit](/posts/talking-mirror)**  
+  *Leaking GOT and redirecting execution via printf.*
+
+- **[Dirty Laundry - Ret2Libc Deep Dive](/posts/dirty-laundry)**  
+  *A technical breakdown of bypassing NX and ASLR via return-to-libc.*

@@ -1,5 +1,5 @@
 ---
-title: "Dirty Laundry - Ret2Libc Masterclass"
+title: "Dirty Laundry - Ret2Libc Deep Dive"
 date: 2026-02-10
 tags: [pwn, x64, ret2libc, linux]
 ---
