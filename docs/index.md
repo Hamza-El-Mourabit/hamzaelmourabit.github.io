@@ -4,11 +4,11 @@ layout: home
 hero:
   name: "LWa7ch's Blogs"
   text: "AI & Cybersecurity Engineering Student"
-  tagline: "Bridging the gap between intelligent systems and low-level exploitation."
+  tagline: "High-density technical analysis, binary exploitation, and autonomous AI engineering."
   actions:
     - theme: brand
-      text: "ACCESS ALL WRITE-UPS"
-      link: /posts/dirty-laundry
+      text: "ACCESS EXPERT WRITE-UPS"
+      link: /posts/pokedex
     - theme: alt
       text: "VIEW RECON DEPOT"
       link: https://github.com/Hamza-El-Mourabit
@@ -31,13 +31,13 @@ features:
 # Latest Posts
 
 - **[The Pokedex UAF Challenge - Heap Exploit](/posts/pokedex)**  
-  *Un début de cours sur l'exploitation du Heap Glibc via Use-After-Free.*
+  *Analyse approfondie du Use-After-Free sur Glibc 2.27, injection de Tcache et leak d'Unsorted Bin.*
 
-- **[Talking Mirror - Format String Exploit](/posts/talking-mirror)**  
-  *Leaking GOT and redirecting execution via printf.*
+- **[Talking Mirror - Format String & GOT Hijack](/posts/talking-mirror)**  
+  *Détournement du flux d'exécution via primitive d'écriture arbitraire printf.*
 
-- **[Dirty Laundry - Ret2Libc Deep Dive](/posts/dirty-laundry)**  
-  *A technical breakdown of bypassing NX and ASLR via return-to-libc.*
+- **[Dirty Laundry - Ret2Libc & ROP Chain](/posts/dirty-laundry)**  
+  *Contournement de NX et ASLR par chaînage de gadgets ROP et fuite de mémoire GOT.*
 
 - **[UltraCTF Architecture - Autonomous Pwn](/posts/ultra-ctf)**  
   *How AI is revolutionizing the future of CTF solving.*

